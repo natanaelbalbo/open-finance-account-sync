@@ -5,7 +5,8 @@ describe('InMemoryQueueService', () => {
   let queue: InMemoryQueueService;
 
   beforeEach(() => {
-    queue = new InMemoryQueueService(3);
+    queue = new InMemoryQueueService();
+    queue.setMaxRetries(3);
   });
 
   const sampleJob: SyncJobMessage = {

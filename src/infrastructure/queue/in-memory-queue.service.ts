@@ -6,22 +6,18 @@ import { IQueueService, SyncJobMessage } from '../../domain/ports/queue.port';
 export class InMemoryQueueService implements IQueueService {
   private queue: SyncJobMessage[] = [];
   private dlq: { job: SyncJobMessage; reason: string; timestamp: Date }[] = [];
-  private readonly maxRetries: number;
+  private maxRetries: number;
 
-  constructor(
-    @Optional() configServiceOrMaxRetries?: ConfigService | number,
-    maxRetries?: number,
-  ) {
-    if (typeof configServiceOrMaxRetries === 'number') {
-      this.maxRetries = configServiceOrMaxRetries;
-    } else {
-      const configService = configServiceOrMaxRetries;
-      const envMaxRetries = Number(
-        configService?.get<string>('QUEUE_MAX_ATTEMPTS') ??
-          process.env.QUEUE_MAX_ATTEMPTS,
-      );
-      this.maxRetries = maxRetries ?? (isNaN(envMaxRetries) ? 3 : envMaxRetries);
-    }
+  constructor(@Optional() private readonly configService?: ConfigService) {
+    const envMax = Number(
+      this.configService?.get<string>('QUEUE_MAX_ATTEMPTS') ??
+        process.env.QUEUE_MAX_ATTEMPTS,
+    );
+    this.maxRetries = isNaN(envMax) || envMax <= 0 ? 3 : envMax;
+  }
+
+  setMaxRetries(max: number): void {
+    this.maxRetries = max;
   }
 
   async publish(job: SyncJobMessage): Promise<void> {
