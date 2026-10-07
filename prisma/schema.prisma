@@ -1,0 +1,72 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Consent {
+  id                   String           @id @default(uuid()) @db.Uuid
+  clientId             String           @map("client_id") @db.VarChar(100)
+  institutionId        String           @map("institution_id") @db.VarChar(100)
+  externalId           String           @map("external_id") @db.VarChar(150)
+  status               String           @default("ACTIVE") @db.VarChar(30)
+  expiresAt            DateTime         @map("expires_at") @db.Timestamptz
+  lastSuccessfulSyncAt DateTime?        @map("last_successful_sync_at") @db.Timestamptz
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  accounts             ConsentAccount[]
+
+  @@unique([institutionId, externalId], name: "uk_consents_institution_external")
+  @@index([clientId, status], name: "idx_consents_client_status")
+  @@map("consents")
+}
+
+model Account {
+  id            String           @id @default(uuid()) @db.Uuid
+  clientId      String           @map("client_id") @db.VarChar(100)
+  institutionId String           @map("institution_id") @db.VarChar(100)
+  externalId    String           @map("external_id") @db.VarChar(150)
+  number        String?          @db.VarChar(50)
+  type          String           @default("CHECKING") @db.VarChar(30)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  consents      ConsentAccount[]
+  transactions  Transaction[]
+
+  @@unique([institutionId, externalId], name: "uk_accounts_institution_external")
+  @@index([clientId], name: "idx_accounts_client_id")
+  @@map("accounts")
+}
+
+model ConsentAccount {
+  consentId String   @map("consent_id") @db.Uuid
+  accountId String   @map("account_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  consent Consent @relation(fields: [consentId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@id([consentId, accountId])
+  @@map("consent_accounts")
+}
+
+model Transaction {
+  id              String   @id @default(uuid()) @db.Uuid
+  accountId       String   @map("account_id") @db.Uuid
+  externalId      String   @map("external_id") @db.VarChar(150)
+  amount          Decimal  @db.Decimal(15, 2)
+  currency        String   @default("BRL") @db.VarChar(3)
+  transactionDate DateTime @map("transaction_date") @db.Timestamptz
+  description     String   @db.Text
+  status          String   @default("POSTED") @db.VarChar(30)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, externalId], name: "uk_transactions_account_external")
+  @@index([accountId, transactionDate(sort: Desc), id(sort: Desc)], name: "idx_transactions_account_date_id")
+  @@map("transactions")
+}

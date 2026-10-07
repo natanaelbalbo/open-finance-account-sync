@@ -1,0 +1,23 @@
+# Dependencias
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build e compilação
+dist/
+build/
+*.tsbuildinfo
+
+# variáveis de ambiente e credenciais
+.env
+.env.*
+!.env.example
+
+# documentação interna
+docs/
+
+# Cobertura de testes e relatórios
+coverage/
+.nyc_output/
+evidence_report.md
